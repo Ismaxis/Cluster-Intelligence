@@ -50,8 +50,8 @@ class Boid:
         pg.draw.line(win, color, self.pos, self.pos, 2)
 
     def move(self):
-        self.counters[0] += 1
-        self.counters[1] += 1
+        self.counters[0] += AVERAGE_VEL
+        self.counters[1] += AVERAGE_VEL
 
         self.angle += np.random.randint(-ANGLE_DEVIATION, ANGLE_DEVIATION + 1)
 
@@ -66,12 +66,16 @@ class Boid:
 
         if self.pos[0] >= WIN_SIZE_X:
             self.angle = 180 - self.angle
+            self.pos[0] = WIN_SIZE_X - 1
         elif self.pos[0] <= 0:
             self.angle = 180 - self.angle
+            self.pos[0] = 0
         elif self.pos[1] >= WIN_SIZE_Y:
             self.angle = 360 - self.angle
+            self.pos[1] = WIN_SIZE_Y - 1
         elif self.pos[1] <= 0:
             self.angle = 360 - self.angle
+            self.pos[1] = 0
 
     def collide(self):
         global Stations
@@ -156,13 +160,37 @@ def scream_and_hear(win):
                         Cur_Boid.angle = 180 - angle
 
 
+class Boid_group:
+    def __init__(self):
+        self.Items = []
+
+
 Stations = [Station(100, 100, 0), Station(600, 600, 1)]
 
 Boids = []
 for i in range(0, 300):
     Boids.append(Boid())
 draw_lines = False
-counter = 0
+
+side_of_square = RADIUS_OF_HEARING
+grid_size_x = int(WIN_SIZE_X // side_of_square)
+grid_size_y = int(WIN_SIZE_Y // side_of_square)
+
+Squares = np.zeros((grid_size_x, grid_size_y), dtype=Boid_group)
+
+for i in range(0, grid_size_x):
+    for j in range(0, grid_size_y):
+        Squares[i, j] = Boid_group()
+
+'''
+Squares[0, 0].Items.append(Boids[0])
+Squares[1, 1].Items.append(Boids[0])
+
+for i in range(0, grid_size_x):
+    for j in range(0, grid_size_y):
+        print(f'{i}, {j} = {len(Squares[i, j].Items)}')
+'''
+
 while True:
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -179,14 +207,18 @@ while True:
             elif buttons[2]:
                 Stations[1].pos = pg.mouse.get_pos()
 
+    for i in range(0, grid_size_x):
+        for j in range(0, grid_size_y):
+            Squares[i, j].Items.clear()
+
+    for B in Boids:
+        sq_x = int(B.pos[0] // side_of_square)
+        sq_y = int(B.pos[1] // side_of_square)
+
+        Squares[sq_x, sq_y].Items.append(B)
+
     WIN.fill((0, 0, 0))
-    '''
-    if counter == 30:
-        counter = 0
-        scream_and_hear()
-    else:
-        counter += 1
-    '''
+
     scream_and_hear(WIN)
     for Boid in Boids:
         Boid.move()
