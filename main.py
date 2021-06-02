@@ -7,10 +7,12 @@ WIN_SIZE_X = 1000
 WIN_SIZE_Y = 1000
 STAT_FONT = pg.font.SysFont("comics", 50)
 
+AMOUNT_OF_BOIDS = 300
 AVERAGE_VEL = 2
 VEL_DEVIATION = 0.5
 ANGLE_DEVIATION = 2
 RADIUS_OF_HEARING = 50
+side_of_square = RADIUS_OF_HEARING/2
 
 GLOBAL_SUPPLIES_CARIED = 0
 
@@ -23,7 +25,6 @@ clock = pg.time.Clock()
 
 class Boid:
     SCREAM_RANGE = 50
-    SUPPLIES_CARIED = 0
     SUPPLY_TAKEN = False
 
     def __init__(self):
@@ -87,7 +88,7 @@ class Boid:
             self.pos[1] = WIN_SIZE_Y - 1
 
     def collide(self):
-        global Stations
+        global Stations, GLOBAL_SUPPLIES_CARIED
 
         for Cur_Station in Stations:
             sign = Cur_Station.signature
@@ -96,8 +97,9 @@ class Boid:
                 self.counters[sign] = 0
                 if not self.SUPPLY_TAKEN:
                     self.SUPPLY_TAKEN = True
-                if self.SUPPLY_TAKEN:
-                    self.SUPPLIES_CARIED += 1
+                elif self.SUPPLY_TAKEN and self.target == sign:
+                    GLOBAL_SUPPLIES_CARIED += 1
+                    self.SUPPLY_TAKEN = False
 
                 if self.angle >= 180:
                     self.angle -= 180
@@ -112,7 +114,7 @@ class Boid:
 
 
 class Station:
-    SIZE = 50
+    SIZE = 25
 
     def __init__(self, x, y, signature):
         self.pos = (x, y)
@@ -134,21 +136,26 @@ class BoidGroup:
 
 
 def matrix_drawing(size_x, size_y):
-    global WIN, WIN_SIZE_X, WIN_SIZE_Y, RADIUS_OF_HEARING
+    global WIN, WIN_SIZE_X, WIN_SIZE_Y, side_of_square, Squares
 
     for i in range(0, size_x):
         for j in range(0, size_y):
-            pg.draw.line(WIN, DEF_COLOR, (i * RADIUS_OF_HEARING * 2, 0), (i * RADIUS_OF_HEARING * 2, WIN_SIZE_X))
-            pg.draw.line(WIN, DEF_COLOR, (0, i * RADIUS_OF_HEARING * 2), (WIN_SIZE_Y, i * RADIUS_OF_HEARING * 2))
+            len1 = len(Squares[i, j].Items)
+
+            if len1 > 0:
+                label = STAT_FONT.render(f'{len1}', True, DEF_COLOR)
+                WIN.blit(label, (i * side_of_square, j * side_of_square))
+
+            pg.draw.line(WIN, DEF_COLOR, (i * side_of_square, 0), (i * side_of_square, WIN_SIZE_X))
+            pg.draw.line(WIN, DEF_COLOR, (0, i * side_of_square), (WIN_SIZE_Y, i * side_of_square))
 
 
 Stations = [Station(100, 100, 0), Station(900, 900, 1)]
 
 Boids = []
-for i in range(0, 300):
+for i in range(0, AMOUNT_OF_BOIDS):
     Boids.append(Boid())
 
-side_of_square = RADIUS_OF_HEARING * 2
 grid_size_x = int(WIN_SIZE_X // side_of_square)
 grid_size_y = int(WIN_SIZE_Y // side_of_square)
 
@@ -200,20 +207,19 @@ while True:
     label = STAT_FONT.render("SUPPLIES CARIED: " + str(GLOBAL_SUPPLIES_CARIED), True, DEF_COLOR)
     WIN.blit(label, (WIN_SIZE_X - label.get_width() - 15, 10))
 
-    if draw_matrix:
-        # draw matrix with side = side_of_square
-        matrix_drawing(grid_size_x, grid_size_y)
-
     scream_and_hear(WIN, draw_lines, Squares, (grid_size_x, grid_size_y), RADIUS_OF_HEARING)
 
     for Boid in Boids:
-        GLOBAL_SUPPLIES_CARIED += Boid.SUPPLIES_CARIED
-        Boid.SUPPLIES_CARIED = 0
         Boid.move()
         Boid.collide()
         Boid.draw(WIN)
 
     for Station in Stations:
         Station.draw(WIN)
+
+    # draw matrix with side = side_of_square
+    if draw_matrix:
+        matrix_drawing(grid_size_x, grid_size_y)
+
     pg.display.update()
-    clock.tick(60)
+    clock.tick(100)
