@@ -204,7 +204,7 @@ while True:
         # draw matrix with side = side_of_square
         matrix_drawing(grid_size_x, grid_size_y)
 
-    scream_and_hear(WIN, draw_lines, Squares, (grid_size_x, grid_size_y))
+    scream_and_hear(WIN, draw_lines, Squares, (grid_size_x, grid_size_y), RADIUS_OF_HEARING)
 
     for Boid in Boids:
         GLOBAL_SUPPLIES_CARIED += Boid.SUPPLIES_CARIED

@@ -1,26 +1,24 @@
 import pygame as pg
 import numpy as np
 
-RADIUS_OF_HEARING = 50
 
-
-def check_dist_and_updating_counters(cur_boid, boids, draw_lines, win):
+def check_dist_and_updating_counters(cur_boid, boids, draw_lines, win, radius_of_hearing):
 
     for k in range(0, len(boids)):
         distance_sq = (cur_boid.pos[0] - boids[k].pos[0]) ** 2 + (cur_boid.pos[1] - boids[k].pos[1]) ** 2
 
-        if distance_sq <= RADIUS_OF_HEARING ** 2:
+        if distance_sq <= radius_of_hearing ** 2:
             something_changes = False
 
             # checking A
-            if cur_boid.counters[0] > boids[k].counters[0] + RADIUS_OF_HEARING:
-                cur_boid.counters[0] = boids[k].counters[0] + RADIUS_OF_HEARING
+            if cur_boid.counters[0] > boids[k].counters[0] + radius_of_hearing:
+                cur_boid.counters[0] = boids[k].counters[0] + radius_of_hearing
                 if cur_boid.target == 0:
                     something_changes = True
 
             # checking B
-            if cur_boid.counters[1] > boids[k].counters[1] + RADIUS_OF_HEARING:
-                cur_boid.counters[1] = boids[k].counters[1] + RADIUS_OF_HEARING
+            if cur_boid.counters[1] > boids[k].counters[1] + radius_of_hearing:
+                cur_boid.counters[1] = boids[k].counters[1] + radius_of_hearing
                 if cur_boid.target == 1:
                     something_changes = True
 
@@ -46,7 +44,7 @@ def check_dist_and_updating_counters(cur_boid, boids, draw_lines, win):
                     cur_boid.angle = 180 - angle
 
 
-def scream_and_hear(win, draw_lines, squares, grid):
+def scream_and_hear(win, draw_lines, squares, grid, radius_of_hearing):
 
     # goes throw all Squares
     for i in range(0, grid[0]):
@@ -55,7 +53,7 @@ def scream_and_hear(win, draw_lines, squares, grid):
 
                 # first compare with its square boids
                 boids = squares[i, j].Items
-                check_dist_and_updating_counters(Cur_Boid, boids, draw_lines, win)
+                check_dist_and_updating_counters(Cur_Boid, boids, draw_lines, win, radius_of_hearing)
 
                 # cleaning 
                 boids.clear()
@@ -74,4 +72,4 @@ def scream_and_hear(win, draw_lines, squares, grid):
                     for boid in squares[i + 1, j + 1].Items:
                         boids.append(boid)
 
-                check_dist_and_updating_counters(Cur_Boid, boids, draw_lines, win)
+                check_dist_and_updating_counters(Cur_Boid, boids, draw_lines, win, radius_of_hearing)
