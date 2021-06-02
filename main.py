@@ -1,13 +1,18 @@
 import pygame as pg
 import numpy as np
+from scream_and_hear_function import scream_and_hear
+pg.font.init()
 
 WIN_SIZE_X = 1000
 WIN_SIZE_Y = 1000
+STAT_FONT = pg.font.SysFont("comics", 50)
 
-AVERAGE_VEL = 4
-VEL_DEVIATION = 1
-ANGLE_DEVIATION = 0
+AVERAGE_VEL = 2
+VEL_DEVIATION = 0.5
+ANGLE_DEVIATION = 2
 RADIUS_OF_HEARING = 50
+
+GLOBAL_SUPPLIES_CARIED = 0
 
 DEF_COLOR = (255, 255, 255)
 
@@ -18,9 +23,12 @@ clock = pg.time.Clock()
 
 class Boid:
     SCREAM_RANGE = 50
+    SUPPLIES_CARIED = 0
+    SUPPLY_TAKEN = False
 
     def __init__(self):
         global Stations
+
         # randomise pos of Boid
         self.pos = [None, None]
         self.pos[0] = np.random.randint(1, WIN_SIZE_X)
@@ -66,16 +74,17 @@ class Boid:
 
         if self.pos[0] >= WIN_SIZE_X:
             self.angle = 180 - self.angle
-            self.pos[0] = WIN_SIZE_X - 1
         elif self.pos[0] <= 0:
             self.angle = 180 - self.angle
-            self.pos[0] = 0
         elif self.pos[1] >= WIN_SIZE_Y:
             self.angle = 360 - self.angle
-            self.pos[1] = WIN_SIZE_Y - 1
         elif self.pos[1] <= 0:
             self.angle = 360 - self.angle
-            self.pos[1] = 0
+
+        if self.pos[0] >= WIN_SIZE_X:
+            self.pos[0] = WIN_SIZE_X - 1
+        if self.pos[1] >= WIN_SIZE_Y:
+            self.pos[1] = WIN_SIZE_Y - 1
 
     def collide(self):
         global Stations
@@ -85,6 +94,11 @@ class Boid:
             distance_sq = (self.pos[0] - Cur_Station.pos[0]) ** 2 + (self.pos[1] - Cur_Station.pos[1]) ** 2
             if distance_sq <= Cur_Station.SIZE ** 2:
                 self.counters[sign] = 0
+                if not self.SUPPLY_TAKEN:
+                    self.SUPPLY_TAKEN = True
+                if self.SUPPLY_TAKEN:
+                    self.SUPPLIES_CARIED += 1
+
                 if self.angle >= 180:
                     self.angle -= 180
                 else:
@@ -114,82 +128,39 @@ class Station:
         pg.draw.circle(win, self.color, self.pos, self.SIZE)
 
 
-def scream_and_hear(win):
-    global Boids
-
-    # checking distances between all Boids and if someone near to other updating their counters
-    for Cur_Boid in Boids:
-        for i in range(0, len(Boids)):
-            distance_sq = (Cur_Boid.pos[0] - Boids[i].pos[0]) ** 2 + (Cur_Boid.pos[1] - Boids[i].pos[1]) ** 2
-
-            if distance_sq <= RADIUS_OF_HEARING ** 2:
-                something_changes = False
-
-                # checking A
-                if Cur_Boid.counters[0] > Boids[i].counters[0] + RADIUS_OF_HEARING:
-                    Cur_Boid.counters[0] = Boids[i].counters[0] + RADIUS_OF_HEARING
-                    if Cur_Boid.target == 0:
-                        something_changes = True
-
-                # checking B
-                if Cur_Boid.counters[1] > Boids[i].counters[1] + RADIUS_OF_HEARING:
-                    Cur_Boid.counters[1] = Boids[i].counters[1] + RADIUS_OF_HEARING
-                    if Cur_Boid.target == 1:
-                        something_changes = True
-
-                # changing direction
-                if something_changes:
-                    if draw_lines:
-                        pg.draw.line(win, DEF_COLOR, Cur_Boid.pos, Boids[i].pos)
-                    distances = [Cur_Boid.pos[0] - Boids[i].pos[0], Cur_Boid.pos[1] - Boids[i].pos[1]]
-
-                    if distances[0] == 0:
-                        angle = 90
-                    else:
-                        tan = (distances[1]) / (distances[0])
-                        angle = np.degrees(np.arctan(tan))
-
-                    # attention OY axis is inverted and all signs at y cords is inverted too
-                    if distances[0] < 0 < distances[1]:
-                        Cur_Boid.angle = -angle
-                    elif distances[0] > 0 > distances[1]:
-                        Cur_Boid.angle = 180 - angle
-                    elif distances[0] < 0 and distances[1] < 0:
-                        Cur_Boid.angle = 360 - angle
-                    elif distances[0] > 0 and distances[1] > 0:
-                        Cur_Boid.angle = 180 - angle
-
-
-class Boid_group:
+class BoidGroup:
     def __init__(self):
         self.Items = []
 
 
-Stations = [Station(100, 100, 0), Station(600, 600, 1)]
+def matrix_drawing(size_x, size_y):
+    global WIN, WIN_SIZE_X, WIN_SIZE_Y, RADIUS_OF_HEARING
+
+    for i in range(0, size_x):
+        for j in range(0, size_y):
+            pg.draw.line(WIN, DEF_COLOR, (i * RADIUS_OF_HEARING * 2, 0), (i * RADIUS_OF_HEARING * 2, WIN_SIZE_X))
+            pg.draw.line(WIN, DEF_COLOR, (0, i * RADIUS_OF_HEARING * 2), (WIN_SIZE_Y, i * RADIUS_OF_HEARING * 2))
+
+
+Stations = [Station(100, 100, 0), Station(900, 900, 1)]
 
 Boids = []
 for i in range(0, 300):
     Boids.append(Boid())
-draw_lines = False
 
-side_of_square = RADIUS_OF_HEARING
+side_of_square = RADIUS_OF_HEARING * 2
 grid_size_x = int(WIN_SIZE_X // side_of_square)
 grid_size_y = int(WIN_SIZE_Y // side_of_square)
 
-Squares = np.zeros((grid_size_x, grid_size_y), dtype=Boid_group)
+# contains groups of Boids by squares
+Squares = np.zeros((grid_size_x, grid_size_y), dtype=BoidGroup)
 
 for i in range(0, grid_size_x):
     for j in range(0, grid_size_y):
-        Squares[i, j] = Boid_group()
+        Squares[i, j] = BoidGroup()
 
-'''
-Squares[0, 0].Items.append(Boids[0])
-Squares[1, 1].Items.append(Boids[0])
-
-for i in range(0, grid_size_x):
-    for j in range(0, grid_size_y):
-        print(f'{i}, {j} = {len(Squares[i, j].Items)}')
-'''
+draw_lines = False
+draw_matrix = False
 
 while True:
     for event in pg.event.get():
@@ -199,12 +170,19 @@ while True:
 
         if event.type == pg.MOUSEBUTTONDOWN:
             buttons = pg.mouse.get_pressed(3)
-            if buttons[0]:
+            if buttons[2]:
                 if draw_lines:
                     draw_lines = False
                 elif not draw_lines:
                     draw_lines = True
-            elif buttons[2]:
+
+            if buttons[1]:
+                if draw_matrix:
+                    draw_matrix = False
+                elif not draw_matrix:
+                    draw_matrix = True
+
+            elif buttons[0]:
                 Stations[1].pos = pg.mouse.get_pos()
 
     for i in range(0, grid_size_x):
@@ -219,8 +197,18 @@ while True:
 
     WIN.fill((0, 0, 0))
 
-    scream_and_hear(WIN)
+    label = STAT_FONT.render("SUPPLIES CARIED: " + str(GLOBAL_SUPPLIES_CARIED), True, DEF_COLOR)
+    WIN.blit(label, (WIN_SIZE_X - label.get_width() - 15, 10))
+
+    if draw_matrix:
+        # draw matrix with side = side_of_square
+        matrix_drawing(grid_size_x, grid_size_y)
+
+    scream_and_hear(WIN, draw_lines, Squares, (grid_size_x, grid_size_y))
+
     for Boid in Boids:
+        GLOBAL_SUPPLIES_CARIED += Boid.SUPPLIES_CARIED
+        Boid.SUPPLIES_CARIED = 0
         Boid.move()
         Boid.collide()
         Boid.draw(WIN)
