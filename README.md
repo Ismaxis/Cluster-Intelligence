@@ -1,6 +1,6 @@
 # Cluster Intelligence simulation
 
-![DEMO GIF](https://user-images.githubusercontent.com/83420512/205181642-43b8fe0e-2944-40ef-9334-4fd708fd88e2.gif)
+![DEMO GIF](https://user-images.githubusercontent.com/83420512/210019036-655bd569-49bb-4cc0-8cb3-3358c5f19485.gif)
 
 ## Description
 
